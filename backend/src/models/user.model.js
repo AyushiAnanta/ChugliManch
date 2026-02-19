@@ -1,4 +1,5 @@
 import mongoose from "mongoose";
+import bcrypt from "bcryptjs"; // ✅ ADD THIS
 
 const { Schema } = mongoose;
 
@@ -38,8 +39,7 @@ const userSchema = new Schema(
       type: String,
       required: [true, "Password is required"],
       minlength: 6,
-       nullable: true,
-      select: false, 
+      select: false, // ❌ remove nullable
     },
 
     refreshToken: {
@@ -54,23 +54,32 @@ const userSchema = new Schema(
 
     preferredLanguage: {
       type: String,
-      enum:["Hindi","Tamil","Marathi","English"],
+      enum: ["Hindi", "Tamil", "Marathi", "English"],
       default: "English",
     },
 
     oauthProvider: {
-      type: String, 
+      type: String,
     },
 
     role: {
       type: String,
-      enum: ["user", "officer","admin"],
+      enum: ["user", "officer", "admin"],
       default: "user",
     },
   },
-  {
-    timestamps: true,
-  }
+  { timestamps: true }
 );
+
+userSchema.pre("save", async function () {
+  if (!this.isModified("password")) return;
+
+  this.password = await bcrypt.hash(this.password, 10);
+});
+
+
+userSchema.methods.isPasswordCorrect = async function (password) {
+  return await bcrypt.compare(password, this.password);
+};
 
 export const User = mongoose.model("User", userSchema);
