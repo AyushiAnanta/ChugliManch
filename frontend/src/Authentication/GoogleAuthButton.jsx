@@ -1,16 +1,22 @@
 import React from "react";
-import { GoogleLogin } from "@react-oauth/google";
 
 const GoogleAuthButton = () => {
+  const handleGoogleLogin = () => {
+    window.location.href = "http://localhost:8000/api/google";
+  };
+
   return (
-    <div className="w-full mt-3">
-      <GoogleLogin
-        onSuccess={(res) => {
-          console.log("Google success", res);
-        }}
-        onError={() => console.log("Google Login Failed")}
+    <button
+      onClick={handleGoogleLogin}
+      className="w-full mt-4 py-3 border border-gray-400 rounded-full flex justify-center items-center gap-2"
+    >
+      <img
+        src="https://developers.google.com/identity/images/g-logo.png"
+        alt="Google"
+        className="w-5 h-5"
       />
-    </div>
+      <span>Sign in with Google</span>
+    </button>
   );
 };
 

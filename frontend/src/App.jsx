@@ -1,13 +1,31 @@
+import { BrowserRouter, Routes, Route } from "react-router-dom";
+import Authentication from "./Authentication/Authenticate";
+import Dashboard from "./User/Dashboard";
+import GrievanceForm from "./components/GrievanceForm";
+import Status from "./User/Status";
+import Profile from "./User/Profile";
 
-import Authentication from './Authentication/Authenticate'
-import { GoogleOAuthProvider } from "@react-oauth/google";
 function App() {
-  
   return (
-    <GoogleOAuthProvider clientId="56318545794-and8lv8bqatv5r4car5b7h7imupudai6.apps.googleusercontent.com">
-    <Authentication />
-    </GoogleOAuthProvider>
-  )
+    <BrowserRouter>
+      <Routes>
+
+        {/* Login / Signup */}
+        <Route path="/" element={<Authentication />} />
+        <Route path="/login" element={<Authentication />} />
+        <Route path="/signup" element={<Authentication />} />
+
+        {/* Dashboard with Nested Routes */}
+        <Route path="/dashboard" element={<Dashboard />}>
+          <Route index element={<GrievanceForm />} />       
+          <Route path="grievance" element={<GrievanceForm />} />
+          <Route path="status" element={<Status />} />
+          <Route path="profile" element={<Profile />} />
+        </Route>
+
+      </Routes>
+    </BrowserRouter>
+  );
 }
 
-export default App
+export default App;

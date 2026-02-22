@@ -5,7 +5,9 @@ import { ApiResponse } from "../utils/ApiResponse.js";
 import { generateTokens } from "../utils/token.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
 
-export const registerUser = asyncHandler(async (req, res, next) => {
+
+//   REGISTER USER
+export const registerUser = asyncHandler(async (req, res) => {
   const { username, name, email, password, role } = req.body;
 
   if (!username || !email || !password || !name) {
@@ -13,14 +15,10 @@ export const registerUser = asyncHandler(async (req, res, next) => {
   }
 
   const existingEmail = await User.findOne({ email });
-  if (existingEmail) {
-    throw new ApiError(409, "Email already registered");
-  }
+  if (existingEmail) throw new ApiError(409, "Email already registered");
 
   const existingUsername = await User.findOne({ username });
-  if (existingUsername) {
-    throw new ApiError(409, "Username not available");
-  }
+  if (existingUsername) throw new ApiError(409, "Username not available");
 
   const user = await User.create({
     username,
@@ -31,95 +29,86 @@ export const registerUser = asyncHandler(async (req, res, next) => {
   });
 
   return res.status(201).json(
-    new ApiResponse(
-      201,
-      {
-        id: user._id,
-        username: user.username,
-        email: user.email,
-        role: user.role,
-      },
-      "User registered successfully"
-    )
+    new ApiResponse(201, {
+      id: user._id,
+      username: user.username,
+      email: user.email,
+      role: user.role,
+    })
   );
 });
-export const loginUser = asyncHandler(async (req, res, next) => {
+
+
+// LOGIN 
+export const loginUser = asyncHandler(async (req, res) => {
   const { email, username, password } = req.body;
 
-  if ((!email && !username) || !password) {
+  if ((!email && !username) || !password)
     throw new ApiError(400, "Email/Username and password are required");
-  }
 
-  const user = await User.findOne({
-    $or: [{ email }, { username }]
-  }).select("+password");
+  const user = await User.findOne({ $or: [{ email }, { username }] }).select(
+    "+password"
+  );
 
-  if (!user) {
-    throw new ApiError(404, "User not found");
-  }
+  if (!user) throw new ApiError(404, "User not found");
 
   const isCorrect = await user.isPasswordCorrect(password);
-  if (!isCorrect) {
-    throw new ApiError(401, "Invalid credentials");
-  }
+  if (!isCorrect) throw new ApiError(401, "Invalid credentials");
 
   const { accessToken, refreshToken } = generateTokens(user);
 
   user.refreshToken = refreshToken;
   await user.save();
 
-  res.cookie("accessToken", accessToken, {
+  const cookieOptions = {
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",
-    sameSite: "strict",
-    maxAge: 15 * 60 * 1000, 
+    sameSite: "lax",
+  };
+
+  res.cookie("accessToken", accessToken, {
+    ...cookieOptions,
+    maxAge: 15 * 60 * 1000,
   });
 
   res.cookie("refreshToken", refreshToken, {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
-    sameSite: "strict",
-    maxAge: 7 * 24 * 60 * 60 * 1000, 
+    ...cookieOptions,
+    maxAge: 7 * 24 * 60 * 60 * 1000,
   });
 
   return res.status(200).json(
-    new ApiResponse(
-      200,
-      {
-        user: {
-          id: user._id,
-          name: user.name,
-          email: user.email,
-          username: user.username,
-          role: user.role,
-        },
+    new ApiResponse(200, {
+      user: {
+        id: user._id,
+        name: user.name,
+        email: user.email,
+        username: user.username,
+        role: user.role,
       },
-      "Login successful"
-    )
+    })
   );
 });
 
+
+// LOGOUT
 export const logoutUser = asyncHandler(async (req, res) => {
   const userId = req.user?.id;
+  if (!userId) throw new ApiError(401, "Not authenticated");
 
-  if (!userId) {
-    throw new ApiError(401, "Not authenticated");
-  }
-
-  // remove refresh token from DB
   await User.findByIdAndUpdate(userId, { refreshToken: "" });
 
-  // clear cookies
   res.clearCookie("accessToken", {
     httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
-    sameSite: "strict",
+    secure: false,
+    sameSite: "lax",
+    path: "/",
   });
 
   res.clearCookie("refreshToken", {
     httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
-    sameSite: "strict",
+    secure: false,
+    sameSite: "lax",
+    path: "/",
   });
 
   return res.status(200).json(
@@ -128,38 +117,52 @@ export const logoutUser = asyncHandler(async (req, res) => {
 });
 
 
-export const refreshAccessToken = asyncHandler(async (req, res, next) => {
+export const getCurrentUser = (req, res) => {
+  return res.status(200).json({
+    success: true,
+    data: req.user,
+  });
+};
+
+export const refreshAccessToken = asyncHandler(async (req, res) => {
   const refreshToken =
     req.cookies?.refreshToken || req.body.refreshToken;
 
-  if (!refreshToken) {
-    throw new ApiError(401, "Refresh token missing");
+  if (!refreshToken) throw new ApiError(401, "Refresh token missing");
+
+  let decoded;
+
+  try {
+    decoded = jwt.verify(refreshToken, process.env.REFRESH_TOKEN_SECRET);
+  } catch (e) {
+    throw new ApiError(401, "Invalid refresh token");
   }
 
-  const user = await User.findOne({ refreshToken });
-  if (!user) {
-    throw new ApiError(403, "Invalid refresh token");
-  }
+  const user = await User.findById(decoded.id);
+  if (!user) throw new ApiError(404, "User does not exist");
 
-  const decoded = jwt.verify(
-    refreshToken,
-    process.env.REFRESH_TOKEN_SECRET
-  );
+
+  if (user.refreshToken && user.refreshToken !== refreshToken)
+    throw new ApiError(401, "Invalid refresh token");
 
   const { accessToken } = generateTokens(user);
 
   res.cookie("accessToken", accessToken, {
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",
-    sameSite: "strict",
+    sameSite: "lax",
     maxAge: 15 * 60 * 1000,
   });
+  
+  res.cookie("refreshToken", refreshToken, {
+  httpOnly: true,
+  secure: false,
+  sameSite: "lax",
+  path: "/",
+  maxAge: 7 * 24 * 60 * 60 * 1000,
+});
 
   return res.status(200).json(
-    new ApiResponse(
-      200,
-      { accessToken },
-      "New access token generated"
-    )
+    new ApiResponse(200, { accessToken }, "New access token generated")
   );
 });
