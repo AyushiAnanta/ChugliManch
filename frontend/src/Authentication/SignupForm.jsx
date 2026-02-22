@@ -1,64 +1,127 @@
 import React, { useState } from "react";
 import AuthInput from "./AuthInput";
 import GoogleAuthButton from "./GoogleAuthButton";
+import { registerUser } from "../api/auth";
 
 const SignupForm = ({ switchToLogin }) => {
-  const [email, setEmail] = useState("");
-  const [username, setUsername] = useState("");
-  const [password, setPassword] = useState("");
+  const [form, setForm] = useState({
+    name: "",
+    username: "",
+    email: "",
+    password: "",
+    role: "user", // ✅ default role
+  });
 
-  const handleSignup = () => {
-    console.log(email, username, password);
+  const [loading, setLoading] = useState(false);
+
+  // handle input
+  const handleChange = (e) => {
+    setForm({ ...form, [e.target.name]: e.target.value });
+  };
+
+  // signup
+  const handleSignup = async () => {
+    const { name, username, email, password } = form;
+
+    if (!name || !username || !email || !password) {
+      alert("All fields are required");
+      return;
+    }
+
+    try {
+      setLoading(true);
+
+      await registerUser(form); // role included automatically
+
+      alert("Account created successfully 🎉");
+      switchToLogin();
+    } catch (err) {
+      alert(err.message);
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
-    <div className="w-full max-w-md bg-neutral-200 p-8 rounded-2xl shadow-xl">
-
-      <h2 className="text-3xl font-bold mb-2 text-center">
+    <div className="w-full max-w-md bg-white p-8 rounded-2xl shadow-2xl border border-neutral-200">
+      <h2 className="text-3xl font-bold text-center text-neutral-800">
         Create Account
       </h2>
 
-      <p className="text-center mb-6 text-sm">
+      <p className="text-center mt-2 text-sm text-neutral-500">
         Join Sahāyak grievance portal
       </p>
 
-      <div className="flex flex-col gap-4">
+      {/* FORM */}
+      <div className="flex flex-col gap-4 mt-6">
+        {/* FULL NAME */}
         <AuthInput
+          name="name"
+          type="text"
+          placeholder="Full Name"
+          value={form.name}
+          onChange={handleChange}
+        />
+
+        {/* USERNAME */}
+        <AuthInput
+          name="username"
           type="text"
           placeholder="Username"
-          value={username}
-          onChange={(e) => setUsername(e.target.value)}
+          value={form.username}
+          onChange={handleChange}
         />
 
+        {/* EMAIL */}
         <AuthInput
+          name="email"
           type="email"
-          placeholder="Email"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
+          placeholder="Email address"
+          value={form.email}
+          onChange={handleChange}
         />
 
+        {/* PASSWORD */}
         <AuthInput
+          name="password"
           type="password"
           placeholder="Password"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
+          value={form.password}
+          onChange={handleChange}
         />
+
+        {/* ROLE SELECT */}
+        <select
+          name="role"
+          value={form.role}
+          onChange={handleChange}
+          className="w-full px-4 py-3 rounded-xl border border-neutral-300 focus:border-[#6c584c] focus:ring-2 focus:ring-[#6c584c]/20 outline-none transition bg-white"
+        >
+          <option value="user">User</option>
+          <option value="officer">Officer</option>
+        </select>
       </div>
 
+      {/* BUTTON */}
       <button
         onClick={handleSignup}
-        className="w-full mt-6 py-3 bg-[#6c584c] text-white rounded-full"
+        disabled={loading}
+        className="w-full mt-6 py-3 rounded-xl bg-[#6c584c] hover:bg-[#5a483f] text-white font-semibold transition-all disabled:opacity-50"
       >
-        Sign Up
+        {loading ? "Creating account..." : "Sign Up"}
       </button>
 
-      <GoogleAuthButton />
+      {/* GOOGLE LOGIN */}
+      <div className="mt-4">
+        <GoogleAuthButton />
+      </div>
 
-      <p className="text-center mt-6 text-sm">
+      {/* LOGIN SWITCH */}
+      <p className="text-center mt-6 text-sm text-neutral-600">
         Already have an account?
         <button
           onClick={switchToLogin}
-          className="ml-2 font-bold"
+          className="ml-2 font-semibold text-[#6c584c] hover:underline"
         >
           Login
         </button>

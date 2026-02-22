@@ -6,12 +6,12 @@ import { googleCallback } from "../controllers/google.controller.js";
 const router = Router();
 
 router.get(
-  "/google",
+  "/",
   passport.authenticate("google", { scope: ["profile", "email"] })
 );
 
 router.get(
-  "/google/callback",
+  "/callback",
   passport.authenticate("google", { session: false }),
   googleCallback
 );

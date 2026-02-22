@@ -10,16 +10,18 @@ export const googleCallback = asyncHandler(async (req, res) => {
   res.cookie("accessToken", accessToken, {
     httpOnly: true,
     secure: false,
-    sameSite: "strict",
+    sameSite: "lax",
+      path: "/", 
     maxAge: 15 * 60 * 1000,
   });
 
   res.cookie("refreshToken", refreshToken, {
     httpOnly: true,
     secure: false,
-    sameSite: "strict",
+    sameSite: "lax",
+      path: "/", 
     maxAge: 7 * 24 * 60 * 60 * 1000,
   });
 
-  return res.redirect("http://localhost:3000/dashboard"); 
+ return res.redirect("http://localhost:5173/dashboard");
 });
