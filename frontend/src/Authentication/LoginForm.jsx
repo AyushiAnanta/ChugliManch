@@ -3,14 +3,14 @@ import AuthInput from "./AuthInput";
 import GoogleAuthButton from "./GoogleAuthButton";
 import { loginUser } from "../api/auth";
 
-// import translations
 import hi from "../translations/hi.json";
 import mr from "../translations/mr.json";
 import ur from "../translations/ur.json";
 import pa from "../translations/pa.json";
+import bn from "../translations/bn.json";
 import en from "../translations/en.json";
 
-const TEXTS = { en, hi, mr, ur, pa };
+const TEXTS = { en, hi, mr, ur, pa,bn };
 
 const LoginForm = ({ switchToSignup, lang = "en" }) => {
   const [form, setForm] = useState({
@@ -21,7 +21,6 @@ const LoginForm = ({ switchToSignup, lang = "en" }) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
-  // selected language text
   const t = TEXTS[lang] || TEXTS.en;
 
   const handleChange = (e) => {
