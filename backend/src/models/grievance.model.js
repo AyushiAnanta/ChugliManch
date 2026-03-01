@@ -65,7 +65,7 @@ const grievanceSchema = new Schema({
     ],
 
     priorityScore: {
-        type: number
+        type: Number
     },
 
     status: {
